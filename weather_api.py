@@ -76,6 +76,8 @@ class OpenWeatherMapAPI:
             Formatted dictionary with relevant weather information
         """
         current = weather_data.get("current", {})
+        weather_list = current.get("weather", [{}])
+        weather_info = weather_list[0] if weather_list else {}
         
         formatted = {
             "temperature": current.get("temp"),
@@ -84,8 +86,8 @@ class OpenWeatherMapAPI:
             "pressure": current.get("pressure"),
             "wind_speed": current.get("wind_speed"),
             "wind_deg": current.get("wind_deg"),
-            "weather": current.get("weather", [{}])[0].get("description", "N/A"),
-            "weather_main": current.get("weather", [{}])[0].get("main", "N/A"),
+            "weather": weather_info.get("description", "N/A"),
+            "weather_main": weather_info.get("main", "N/A"),
             "clouds": current.get("clouds"),
             "visibility": current.get("visibility"),
             "uvi": current.get("uvi"),

@@ -67,6 +67,14 @@ def example_multiple_locations():
     print("Example 3: Multiple Locations")
     print("=" * 60)
     
+    # Check if user wants to run this example (requires valid API key and makes multiple calls)
+    run_multiple = os.environ.get("WEATHER_EXAMPLE_MULTIPLE", "false").lower() == "true"
+    
+    if not run_multiple:
+        print("\nSkipped: This example makes multiple API calls.")
+        print("Set WEATHER_EXAMPLE_MULTIPLE=true to enable this example.")
+        return
+    
     locations = [
         ("New York", 40.7128, -74.0060),
         ("London", 51.5074, -0.1278),
@@ -120,10 +128,8 @@ def main():
     
     example_python_client()
     
-    # Note: The following example requires a valid API key
-    # and makes multiple API calls, so it's commented out
-    # Uncomment if you want to test with a real API key
-    # example_multiple_locations()
+    # Optional: Multiple locations example (controlled by environment variable)
+    example_multiple_locations()
     
     print("\n" + "=" * 60)
     print("Examples completed!")

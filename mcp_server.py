@@ -4,12 +4,16 @@ Exposes HTTP endpoints for weather data retrieval.
 """
 
 import os
+import logging
 from fastapi import FastAPI, HTTPException, Query
 from typing import Dict, Any
 import uvicorn
 
 from weather_api import OpenWeatherMapAPI, WeatherAPIError
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Weather MCP Server",
@@ -22,7 +26,7 @@ app = FastAPI(
 try:
     weather_client = OpenWeatherMapAPI()
 except WeatherAPIError as e:
-    print(f"Warning: {e}")
+    logger.warning(f"Weather API client initialization: {e}")
     weather_client = None
 
 
@@ -86,7 +90,7 @@ def run_server(host: str = None, port: int = None):
     host = host or os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
     port = port or int(os.environ.get("MCP_SERVER_PORT", "8000"))
     
-    print(f"Starting Weather MCP Server on {host}:{port}")
+    logger.info(f"Starting Weather MCP Server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
 
