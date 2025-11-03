@@ -53,7 +53,7 @@ class WeatherService:
         }
         
         try:
-            logger.info(f"Fetching weather for coordinates: ({latitude}, {longitude})")
+            logger.info("Fetching weather data from API")
             response = requests.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
             

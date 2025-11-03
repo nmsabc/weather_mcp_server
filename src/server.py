@@ -94,7 +94,7 @@ async def get_weather(
         Weather data from OpenWeatherMap One Call API
     """
     try:
-        logger.info(f"Received weather request for ({latitude}, {longitude})")
+        logger.info("Received weather request")
         
         # Fetch weather data
         raw_data = weather_service.get_current_weather(
@@ -129,7 +129,7 @@ async def post_weather(request: WeatherRequest):
         Weather data from OpenWeatherMap One Call API
     """
     try:
-        logger.info(f"Received weather POST request for ({request.latitude}, {request.longitude})")
+        logger.info("Received weather POST request")
         
         # Fetch weather data
         raw_data = weather_service.get_current_weather(

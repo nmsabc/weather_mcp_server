@@ -98,7 +98,7 @@ class MCPWeatherWrapper:
             Weather data result
         """
         try:
-            logger.info(f"MCP: Fetching weather for ({latitude}, {longitude})")
+            logger.info("MCP: Fetching weather data")
             
             raw_data = self.weather_service.get_current_weather(
                 latitude=latitude,

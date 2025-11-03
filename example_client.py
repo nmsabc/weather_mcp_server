@@ -75,7 +75,6 @@ def format_weather_output(data: dict) -> str:
         "\n" + "="*50,
         "WEATHER INFORMATION",
         "="*50,
-        f"Location: ({location.get('latitude')}, {location.get('longitude')})",
         f"Timezone: {location.get('timezone')}",
         "",
         "Current Conditions:",
@@ -120,7 +119,7 @@ def main():
     print("Server is healthy!\n")
     
     # Get weather
-    print(f"Fetching weather for coordinates: ({latitude}, {longitude})")
+    print("Fetching weather data...")
     weather_data = client.get_weather(latitude, longitude, units="metric")
     
     if weather_data:
