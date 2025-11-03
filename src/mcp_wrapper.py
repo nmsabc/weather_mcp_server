@@ -139,14 +139,18 @@ class MCPWeatherWrapper:
         current = data.get("current", {})
         weather = current.get("weather", {})
         
+        # Get coordinates with defaults
+        lat = location.get('latitude', 'N/A')
+        lon = location.get('longitude', 'N/A')
+        
         response_parts = [
-            f"Current weather for coordinates ({location.get('latitude')}, {location.get('longitude')}):",
-            f"Temperature: {current.get('temperature')}°",
-            f"Feels like: {current.get('feels_like')}°",
+            f"Current weather for coordinates ({lat}, {lon}):",
+            f"Temperature: {current.get('temperature', 'N/A')}°",
+            f"Feels like: {current.get('feels_like', 'N/A')}°",
             f"Conditions: {weather.get('description', 'N/A')}",
-            f"Humidity: {current.get('humidity')}%",
-            f"Wind speed: {current.get('wind_speed')} m/s",
-            f"Pressure: {current.get('pressure')} hPa"
+            f"Humidity: {current.get('humidity', 'N/A')}%",
+            f"Wind speed: {current.get('wind_speed', 'N/A')} m/s",
+            f"Pressure: {current.get('pressure', 'N/A')} hPa"
         ]
         
         return "\n".join(response_parts)

@@ -63,10 +63,12 @@ class WeatherService:
             
         except requests.exceptions.HTTPError as e:
             logger.error(f"HTTP error fetching weather data: {e}")
-            if response.status_code == 401:
-                raise ValueError("Invalid API key")
-            elif response.status_code == 404:
-                raise ValueError("Location not found")
+            # Check response status code if available
+            if hasattr(e, 'response') and e.response is not None:
+                if e.response.status_code == 401:
+                    raise ValueError("Invalid API key")
+                elif e.response.status_code == 404:
+                    raise ValueError("Location not found")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching weather data: {e}")
