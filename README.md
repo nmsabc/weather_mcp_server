@@ -72,6 +72,31 @@ $env:MCP_SERVER_HOST="0.0.0.0"
 $env:MCP_SERVER_PORT="8000"
 ```
 
+## Quick Start
+
+The weather service uses a client-server architecture. You need to start the server first, then use the client.
+
+**Terminal 1 - Start the Server:**
+```bash
+export OPENWEATHER_API_KEY="your_api_key_here"
+python main.py server
+```
+
+**Terminal 2 - Use the Client:**
+```bash
+# Get current weather
+python main.py client --lat 40.7128 --lon -74.0060
+
+# Get weather forecast (hourly + daily)
+python main.py forecast --lat 40.7128 --lon -74.0060
+```
+
+**Alternative - Direct API Access:**
+```bash
+curl "http://localhost:8000/weather?lat=40.7128&lon=-74.0060"
+curl "http://localhost:8000/forecast?lat=40.7128&lon=-74.0060"
+```
+
 ## Usage
 
 ### Running the Server
@@ -91,6 +116,8 @@ python main.py server --host 0.0.0.0 --port 8080
 The server will start and listen for requests at `http://<host>:<port>`.
 
 ### Running the Client
+
+**Important:** The server must be running before you can use the client.
 
 In a separate terminal, run the client to fetch current weather data:
 
