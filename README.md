@@ -2,12 +2,16 @@
 
 A Python weather microservice with a Model Context Protocol (MCP) wrapper. It fetches current weather data from the OpenWeatherMap One Call API (version 3) via a FastAPI server, accessible by a separate client or LLM applications.
 
+**Now supports MCP stdio mode for non-blocking operation in multi-server setups!**
+
 ## Features
 
 - **OpenWeatherMap Integration**: Fetches current weather data and forecasts using One Call API v3
 - **FastAPI Server**: RESTful API endpoints for weather data retrieval
 - **Python Client**: Simple client for interacting with the server
 - **Forecast Support**: Get hourly (48h) and daily (8d) weather forecasts
+- **MCP Stdio Mode**: Non-blocking JSON-RPC interface for multi-server setups
+- **Dual Mode Operation**: HTTP mode (standalone) or MCP mode (multi-server)
 - **Configurable**: Environment variable-based configuration for flexibility
 - **Modular Design**: Clear separation of concerns with dedicated modules
 - **Deployment Ready**: Structured for easy deployment to cloud platforms like GCP
@@ -74,7 +78,11 @@ $env:MCP_SERVER_PORT="8000"
 
 ## Quick Start
 
-The weather service uses a client-server architecture. You need to start the server first, then use the client.
+The weather service supports two modes of operation:
+
+### Mode 1: HTTP Mode (Standalone Server)
+
+The traditional client-server architecture. Start the server first, then use the client.
 
 **Terminal 1 - Start the Server:**
 ```bash
@@ -96,6 +104,37 @@ python main.py forecast --lat 40.7128 --lon -74.0060
 curl "http://localhost:8000/weather?lat=40.7128&lon=-74.0060"
 curl "http://localhost:8000/forecast?lat=40.7128&lon=-74.0060"
 ```
+
+### Mode 2: MCP Stdio Mode (Multi-Server Setup)
+
+For use with MCP CLI or when running multiple servers together. The server runs non-blocking and communicates via stdin/stdout.
+
+**Start in MCP Mode:**
+```bash
+export OPENWEATHER_API_KEY="your_api_key_here"
+python main.py server --mcp
+```
+
+**MCP Configuration:**
+```json
+{
+  "mcpServers": {
+    "weather": {
+      "command": "python",
+      "args": ["/path/to/weather_mcp_server/main.py", "server", "--mcp"],
+      "env": {
+        "OPENWEATHER_API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+**MCP Tools Available:**
+- `get_weather(latitude, longitude)` - Get current weather
+- `get_forecast(latitude, longitude)` - Get forecast (hourly + daily)
+
+📚 **See [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md) for detailed MCP usage and [docs/MCP_ARCHITECTURE.md](docs/MCP_ARCHITECTURE.md) for architecture details.**
 
 ## Usage
 

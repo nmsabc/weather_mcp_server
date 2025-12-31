@@ -6,7 +6,7 @@ Provides command-line interface for running server and client.
 import argparse
 import sys
 
-from mcp_server import run_server
+from mcp_server import run_server, run_mcp_stdio_server
 from mcp_client import run_client, run_forecast_client
 
 
@@ -52,6 +52,11 @@ Environment Variables:
         "--port",
         type=int,
         help="Port to listen on (default: MCP_SERVER_PORT env or 8000)"
+    )
+    server_parser.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Run in MCP stdio mode (non-blocking, for multi-server setups)"
     )
     
     # Client command
@@ -111,7 +116,10 @@ Environment Variables:
         return 1
     
     if args.command == "server":
-        run_server(host=args.host, port=args.port)
+        if args.mcp:
+            run_mcp_stdio_server(host=args.host, port=args.port)
+        else:
+            run_server(host=args.host, port=args.port)
         return 0
     elif args.command == "client":
         return run_client(
