@@ -7,57 +7,7 @@ import argparse
 import sys
 
 from mcp_server import run_server
-from mcp_client import MCPClient, MCPClientError
-
-
-def run_client(latitude: float, longitude: float, host: str = None, port: int = None):
-    """
-    Run the MCP client to fetch and display weather data.
-    
-    Args:
-        latitude: Latitude coordinate
-        longitude: Longitude coordinate
-        host: Server host (optional)
-        port: Server port (optional)
-    """
-    try:
-        client = MCPClient(host=host, port=port)
-        print(f"Connecting to Weather MCP Server at {client.base_url}")
-        weather_data = client.get_weather(latitude, longitude)
-        client.display_weather(weather_data)
-    except MCPClientError as e:
-        print(f"Error: {e}")
-        return 1
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return 1
-    
-    return 0
-
-
-def run_forecast_client(latitude: float, longitude: float, host: str = None, port: int = None):
-    """
-    Run the MCP client to fetch and display forecast data.
-    
-    Args:
-        latitude: Latitude coordinate
-        longitude: Longitude coordinate
-        host: Server host (optional)
-        port: Server port (optional)
-    """
-    try:
-        client = MCPClient(host=host, port=port)
-        print(f"Connecting to Weather MCP Server at {client.base_url}")
-        forecast_data = client.get_forecast(latitude, longitude)
-        client.display_forecast(forecast_data)
-    except MCPClientError as e:
-        print(f"Error: {e}")
-        return 1
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return 1
-    
-    return 0
+from mcp_client import run_client, run_forecast_client
 
 
 def main():

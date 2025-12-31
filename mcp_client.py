@@ -5,6 +5,7 @@ Provides client functionality to interact with the MCP server.
 
 import os
 import requests
+from datetime import datetime
 from typing import Dict, Any, Optional
 
 
@@ -107,6 +108,18 @@ class MCPClient:
         print(f"UV Index: {data.get('uvi')}")
         print("=" * 50 + "\n")
     
+    def _format_precipitation(self, pop: float) -> str:
+        """
+        Format precipitation probability as percentage.
+        
+        Args:
+            pop: Precipitation probability (0-1)
+            
+        Returns:
+            Formatted string with percentage
+        """
+        return f"{pop * 100:.0f}%"
+    
     def display_forecast(self, forecast_data: Dict[str, Any]) -> None:
         """
         Display forecast data in a readable format.
@@ -145,14 +158,13 @@ class MCPClient:
             print("\n" + "-" * 70)
             print("DAILY FORECAST (Next 8 Days)")
             print("-" * 70)
-            from datetime import datetime
             for day in daily:
                 dt = datetime.fromtimestamp(day.get("dt", 0))
                 print(f"\n{dt.strftime('%Y-%m-%d (%A)')}:")
                 print(f"  Weather: {day.get('weather')}")
                 print(f"  Temp: {day.get('temp_min')}°C - {day.get('temp_max')}°C (Day: {day.get('temp_day')}°C, Night: {day.get('temp_night')}°C)")
                 print(f"  Humidity: {day.get('humidity')}%")
-                print(f"  Precipitation: {day.get('pop', 0) * 100:.0f}%")
+                print(f"  Precipitation: {self._format_precipitation(day.get('pop', 0))}")
                 print(f"  Wind: {day.get('wind_speed')} m/s")
         
         # Hourly forecast summary (show first 12 hours)
@@ -160,12 +172,61 @@ class MCPClient:
             print("\n" + "-" * 70)
             print("HOURLY FORECAST (Next 12 Hours)")
             print("-" * 70)
-            from datetime import datetime
             for hour in hourly[:12]:
                 dt = datetime.fromtimestamp(hour.get("dt", 0))
-                print(f"{dt.strftime('%H:%M')}: {hour.get('temp')}°C, {hour.get('weather')}, Precip: {hour.get('pop', 0) * 100:.0f}%")
+                print(f"{dt.strftime('%H:%M')}: {hour.get('temp')}°C, {hour.get('weather')}, Precip: {self._format_precipitation(hour.get('pop', 0))}")
         
         print("=" * 70 + "\n")
+
+
+def run_client(latitude: float, longitude: float, host: str = None, port: int = None):
+    """
+    Run the MCP client to fetch and display weather data.
+    
+    Args:
+        latitude: Latitude coordinate
+        longitude: Longitude coordinate
+        host: Server host (optional)
+        port: Server port (optional)
+    """
+    try:
+        client = MCPClient(host=host, port=port)
+        print(f"Connecting to Weather MCP Server at {client.base_url}")
+        weather_data = client.get_weather(latitude, longitude)
+        client.display_weather(weather_data)
+    except MCPClientError as e:
+        print(f"Error: {e}")
+        return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return 1
+    
+    return 0
+
+
+def run_forecast_client(latitude: float, longitude: float, host: str = None, port: int = None):
+    """
+    Run the MCP client to fetch and display forecast data.
+    
+    Args:
+        latitude: Latitude coordinate
+        longitude: Longitude coordinate
+        host: Server host (optional)
+        port: Server port (optional)
+    """
+    try:
+        client = MCPClient(host=host, port=port)
+        print(f"Connecting to Weather MCP Server at {client.base_url}")
+        forecast_data = client.get_forecast(latitude, longitude)
+        client.display_forecast(forecast_data)
+    except MCPClientError as e:
+        print(f"Error: {e}")
+        return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return 1
+    
+    return 0
 
 
 def run_client(latitude: float, longitude: float, host: str = None, port: int = None):

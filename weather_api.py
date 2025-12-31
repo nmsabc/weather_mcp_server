@@ -79,6 +79,7 @@ class OpenWeatherMapAPI:
         Raises:
             WeatherAPIError: If API request fails
         """
+        # Note: Not including 'exclude' parameter to get all forecast data (current, hourly, daily)
         params = {
             "lat": latitude,
             "lon": longitude,
