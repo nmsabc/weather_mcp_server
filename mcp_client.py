@@ -52,6 +52,30 @@ class MCPClient:
         except requests.exceptions.RequestException as e:
             raise MCPClientError(f"Failed to fetch weather data from server: {str(e)}")
     
+    def get_forecast(self, latitude: float, longitude: float) -> Dict[str, Any]:
+        """
+        Fetch forecast data from the MCP server.
+        
+        Args:
+            latitude: Latitude coordinate
+            longitude: Longitude coordinate
+            
+        Returns:
+            Dictionary containing current weather and forecast data
+            
+        Raises:
+            MCPClientError: If request fails
+        """
+        url = f"{self.base_url}/forecast"
+        params = {"lat": latitude, "lon": longitude}
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            raise MCPClientError(f"Failed to fetch forecast data from server: {str(e)}")
+    
     def display_weather(self, weather_data: Dict[str, Any]) -> None:
         """
         Display weather data in a readable format.
@@ -82,6 +106,66 @@ class MCPClient:
         print(f"Visibility: {data.get('visibility')} meters")
         print(f"UV Index: {data.get('uvi')}")
         print("=" * 50 + "\n")
+    
+    def display_forecast(self, forecast_data: Dict[str, Any]) -> None:
+        """
+        Display forecast data in a readable format.
+        
+        Args:
+            forecast_data: Forecast data dictionary from server
+        """
+        if forecast_data.get("status") != "success":
+            print("Error: Invalid response from server")
+            return
+        
+        data = forecast_data.get("data", {})
+        current = data.get("current", {})
+        hourly = data.get("hourly", [])
+        daily = data.get("daily", [])
+        
+        print("\n" + "=" * 70)
+        print("WEATHER FORECAST")
+        print("=" * 70)
+        print(f"Location: Lat {current.get('lat')}, Lon {current.get('lon')}")
+        print(f"Timezone: {data.get('timezone')}")
+        
+        # Current weather
+        print("\n" + "-" * 70)
+        print("CURRENT WEATHER")
+        print("-" * 70)
+        print(f"Weather: {current.get('weather')} ({current.get('weather_main')})")
+        print(f"Temperature: {current.get('temperature')}°C")
+        print(f"Feels Like: {current.get('feels_like')}°C")
+        print(f"Humidity: {current.get('humidity')}%")
+        print(f"Wind Speed: {current.get('wind_speed')} m/s")
+        print(f"UV Index: {current.get('uvi')}")
+        
+        # Daily forecast
+        if daily:
+            print("\n" + "-" * 70)
+            print("DAILY FORECAST (Next 8 Days)")
+            print("-" * 70)
+            from datetime import datetime
+            for day in daily:
+                dt = datetime.fromtimestamp(day.get("dt", 0))
+                print(f"\n{dt.strftime('%Y-%m-%d (%A)')}:")
+                print(f"  Weather: {day.get('weather')}")
+                print(f"  Temp: {day.get('temp_min')}°C - {day.get('temp_max')}°C (Day: {day.get('temp_day')}°C, Night: {day.get('temp_night')}°C)")
+                print(f"  Humidity: {day.get('humidity')}%")
+                print(f"  Precipitation: {day.get('pop', 0) * 100:.0f}%")
+                print(f"  Wind: {day.get('wind_speed')} m/s")
+        
+        # Hourly forecast summary (show first 12 hours)
+        if hourly:
+            print("\n" + "-" * 70)
+            print("HOURLY FORECAST (Next 12 Hours)")
+            print("-" * 70)
+            from datetime import datetime
+            for hour in hourly[:12]:
+                dt = datetime.fromtimestamp(hour.get("dt", 0))
+                print(f"{dt.strftime('%H:%M')}: {hour.get('temp')}°C, {hour.get('weather')}, Precip: {hour.get('pop', 0) * 100:.0f}%")
+        
+        print("=" * 70 + "\n")
 
 
 def run_client(latitude: float, longitude: float, host: str = None, port: int = None):

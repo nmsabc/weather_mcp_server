@@ -7,7 +7,57 @@ import argparse
 import sys
 
 from mcp_server import run_server
-from mcp_client import run_client
+from mcp_client import MCPClient, MCPClientError
+
+
+def run_client(latitude: float, longitude: float, host: str = None, port: int = None):
+    """
+    Run the MCP client to fetch and display weather data.
+    
+    Args:
+        latitude: Latitude coordinate
+        longitude: Longitude coordinate
+        host: Server host (optional)
+        port: Server port (optional)
+    """
+    try:
+        client = MCPClient(host=host, port=port)
+        print(f"Connecting to Weather MCP Server at {client.base_url}")
+        weather_data = client.get_weather(latitude, longitude)
+        client.display_weather(weather_data)
+    except MCPClientError as e:
+        print(f"Error: {e}")
+        return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return 1
+    
+    return 0
+
+
+def run_forecast_client(latitude: float, longitude: float, host: str = None, port: int = None):
+    """
+    Run the MCP client to fetch and display forecast data.
+    
+    Args:
+        latitude: Latitude coordinate
+        longitude: Longitude coordinate
+        host: Server host (optional)
+        port: Server port (optional)
+    """
+    try:
+        client = MCPClient(host=host, port=port)
+        print(f"Connecting to Weather MCP Server at {client.base_url}")
+        forecast_data = client.get_forecast(latitude, longitude)
+        client.display_forecast(forecast_data)
+    except MCPClientError as e:
+        print(f"Error: {e}")
+        return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return 1
+    
+    return 0
 
 
 def main():
@@ -23,8 +73,11 @@ Examples:
   # Run the server on a specific host and port
   python main.py server --host 0.0.0.0 --port 8080
   
-  # Run the client to fetch weather data
+  # Run the client to fetch current weather data
   python main.py client --lat 33.44 --lon -94.04
+  
+  # Run the client to fetch forecast data (hourly + daily)
+  python main.py forecast --lat 33.44 --lon -94.04
   
   # Run the client connecting to a specific server
   python main.py client --lat 33.44 --lon -94.04 --host localhost --port 8080
@@ -52,7 +105,7 @@ Environment Variables:
     )
     
     # Client command
-    client_parser = subparsers.add_parser("client", help="Run the MCP client")
+    client_parser = subparsers.add_parser("client", help="Run the MCP client for current weather")
     client_parser.add_argument(
         "--lat",
         type=float,
@@ -76,6 +129,31 @@ Environment Variables:
         help="Server port to connect to (default: MCP_SERVER_PORT env or 8000)"
     )
     
+    # Forecast command
+    forecast_parser = subparsers.add_parser("forecast", help="Run the MCP client for weather forecast")
+    forecast_parser.add_argument(
+        "--lat",
+        type=float,
+        required=True,
+        help="Latitude coordinate (-90 to 90)"
+    )
+    forecast_parser.add_argument(
+        "--lon",
+        type=float,
+        required=True,
+        help="Longitude coordinate (-180 to 180)"
+    )
+    forecast_parser.add_argument(
+        "--host",
+        type=str,
+        help="Server host to connect to (default: MCP_SERVER_HOST env or localhost)"
+    )
+    forecast_parser.add_argument(
+        "--port",
+        type=int,
+        help="Server port to connect to (default: MCP_SERVER_PORT env or 8000)"
+    )
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -87,6 +165,13 @@ Environment Variables:
         return 0
     elif args.command == "client":
         return run_client(
+            latitude=args.lat,
+            longitude=args.lon,
+            host=args.host,
+            port=args.port
+        )
+    elif args.command == "forecast":
+        return run_forecast_client(
             latitude=args.lat,
             longitude=args.lon,
             host=args.host,

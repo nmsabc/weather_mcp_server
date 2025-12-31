@@ -37,7 +37,8 @@ async def root():
         "service": "Weather MCP Server",
         "version": "1.0.0",
         "endpoints": {
-            "/weather": "Get current weather data for latitude and longitude"
+            "/weather": "Get current weather data for latitude and longitude",
+            "/forecast": "Get current weather and forecast (hourly and daily) for latitude and longitude"
         }
     }
 
@@ -72,6 +73,43 @@ async def get_weather(
         return {
             "status": "success",
             "data": formatted_weather
+        }
+    except WeatherAPIError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+@app.get("/forecast")
+async def get_forecast(
+    lat: float = Query(..., description="Latitude coordinate", ge=-90, le=90),
+    lon: float = Query(..., description="Longitude coordinate", ge=-180, le=180)
+) -> Dict[str, Any]:
+    """
+    Get current weather and forecast data for specified coordinates.
+    
+    Args:
+        lat: Latitude coordinate (-90 to 90)
+        lon: Longitude coordinate (-180 to 180)
+        
+    Returns:
+        Dictionary containing current weather, hourly (48h), and daily (8d) forecast data
+        
+    Raises:
+        HTTPException: If forecast data cannot be retrieved
+    """
+    if weather_client is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Weather API client not initialized. Check API key configuration."
+        )
+    
+    try:
+        raw_forecast = weather_client.get_forecast(lat, lon)
+        formatted_forecast = weather_client.format_forecast_data(raw_forecast)
+        return {
+            "status": "success",
+            "data": formatted_forecast
         }
     except WeatherAPIError as e:
         raise HTTPException(status_code=500, detail=str(e))

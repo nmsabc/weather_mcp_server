@@ -4,9 +4,10 @@ A Python weather microservice with a Model Context Protocol (MCP) wrapper. It fe
 
 ## Features
 
-- **OpenWeatherMap Integration**: Fetches current weather data (excluding hourly and daily forecasts) using One Call API v3
-- **FastAPI Server**: RESTful API endpoint for weather data retrieval
+- **OpenWeatherMap Integration**: Fetches current weather data and forecasts using One Call API v3
+- **FastAPI Server**: RESTful API endpoints for weather data retrieval
 - **Python Client**: Simple client for interacting with the server
+- **Forecast Support**: Get hourly (48h) and daily (8d) weather forecasts
 - **Configurable**: Environment variable-based configuration for flexibility
 - **Modular Design**: Clear separation of concerns with dedicated modules
 - **Deployment Ready**: Structured for easy deployment to cloud platforms like GCP
@@ -91,16 +92,23 @@ The server will start and listen for requests at `http://<host>:<port>`.
 
 ### Running the Client
 
-In a separate terminal, run the client to fetch weather data:
+In a separate terminal, run the client to fetch current weather data:
 
 ```bash
 python main.py client --lat 33.44 --lon -94.04
+```
+
+To fetch forecast data (hourly and daily):
+
+```bash
+python main.py forecast --lat 33.44 --lon -94.04
 ```
 
 Connect to a server on a different host/port:
 
 ```bash
 python main.py client --lat 33.44 --lon -94.04 --host localhost --port 8080
+python main.py forecast --lat 33.44 --lon -94.04 --host localhost --port 8080
 ```
 
 ### Example Locations
@@ -121,7 +129,7 @@ When the server is running, you can also access it directly:
 curl http://localhost:8000/
 ```
 
-#### Weather Endpoint
+#### Weather Endpoint (Current Weather Only)
 ```bash
 curl "http://localhost:8000/weather?lat=33.44&lon=-94.04"
 ```
@@ -145,6 +153,48 @@ Response format:
     "timezone": "America/Chicago",
     "lat": 33.44,
     "lon": -94.04
+  }
+}
+```
+
+#### Forecast Endpoint (Current + Hourly + Daily)
+```bash
+curl "http://localhost:8000/forecast?lat=33.44&lon=-94.04"
+```
+
+Response format:
+```json
+{
+  "status": "success",
+  "data": {
+    "current": {
+      "temperature": 20.5,
+      "feels_like": 19.8,
+      "humidity": 65,
+      "weather": "clear sky",
+      "...": "..."
+    },
+    "hourly": [
+      {
+        "dt": 1234567890,
+        "temp": 21.0,
+        "humidity": 60,
+        "weather": "clear sky",
+        "pop": 0.1
+      }
+    ],
+    "daily": [
+      {
+        "dt": 1234567890,
+        "temp_min": 15.0,
+        "temp_max": 25.0,
+        "temp_day": 22.0,
+        "temp_night": 17.0,
+        "weather": "partly cloudy",
+        "pop": 0.2
+      }
+    ],
+    "timezone": "America/Chicago"
   }
 }
 ```
