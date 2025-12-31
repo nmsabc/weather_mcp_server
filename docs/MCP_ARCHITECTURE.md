@@ -40,15 +40,15 @@ The Weather MCP Server now supports two modes of operation:
 ### Mode 2: MCP Stdio Mode (Multi-Server)
 
 ```
-┌──────────────────────────────────────────────────────┐
-│             MCP CLI / Main Application                │
-│                                                       │
-│  Launches multiple servers via subprocess             │
-└────┬─────────────────┬─────────────────┬────────────┘
-     │                 │                 │
-     │ stdin/stdout    │ stdin/stdout    │ stdin/stdout
-     │ JSON-RPC        │ JSON-RPC        │ JSON-RPC
-     │                 │                 │
+┌──────────────────────────────────────────────┐
+│             MCP CLI / Main Application       │
+│                                              │
+│  Launches multiple servers via subprocess    │
+└────┬────────────────┬────────────────┬───────┘
+     │                │                │
+     │ stdin/stdout   │ stdin/stdou    │ stdin/stdout
+     │ JSON-RPC       │ JSON-RPC       │ JSON-RPC
+     │                │                │
 ┌────▼────────┐  ┌────▼────────┐  ┌────▼────────┐
 │  Weather    │  │   Main      │  │  Web Search │
 │  Server     │  │   Server    │  │  Server     │
@@ -69,41 +69,41 @@ The Weather MCP Server now supports two modes of operation:
 ### MCP Server Components
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   mcp_server.py                        │
-│                                                        │
+┌──────────────────────────────────────────────────────┐
+│                   mcp_server.py                      │
+│                                                      │
 │  ┌──────────────────────────────────────────────┐    │
-│  │         FastAPI Application (app)             │    │
-│  │                                               │    │
-│  │  Endpoints:                                   │    │
-│  │  - GET /        (service info)                │    │
-│  │  - GET /weather (current weather)             │    │
-│  │  - GET /forecast (hourly + daily forecast)    │    │
+│  │         FastAPI Application (app)            │    │
+│  │                                              │    │
+│  │  Endpoints:                                  │    │
+│  │  - GET /        (service info)               │    │
+│  │  - GET /weather (current weather)            │    │
+│  │  - GET /forecast (hourly + daily forecast)   │    │
 │  └──────────────────────────────────────────────┘    │
-│                                                        │
+│                                                      │
 │  ┌──────────────────────────────────────────────┐    │
-│  │      run_server() - HTTP Mode                 │    │
-│  │                                               │    │
-│  │  uvicorn.run(app) - BLOCKING                  │    │
-│  │  Used for: standalone HTTP server             │    │
+│  │      run_server() - HTTP Mode                │    │
+│  │                                              │    │
+│  │  uvicorn.run(app) - BLOCKING                 │    │
+│  │  Used for: standalone HTTP server            │    │
 │  └──────────────────────────────────────────────┘    │
-│                                                        │
+│                                                      │
 │  ┌──────────────────────────────────────────────┐    │
-│  │   run_mcp_stdio_server() - MCP Mode           │    │
-│  │                                               │    │
-│  │  1. Start Uvicorn in daemon thread            │    │
-│  │     (non-blocking, background HTTP server)    │    │
-│  │                                               │    │
-│  │  2. Main thread handles stdin/stdout          │    │
-│  │     - Read JSON-RPC from stdin                │    │
-│  │     - Call internal HTTP endpoints            │    │
-│  │     - Write JSON-RPC to stdout                │    │
-│  │                                               │    │
-│  │  MCP Tools:                                   │    │
-│  │  - get_weather (lat, lon)                     │    │
-│  │  - get_forecast (lat, lon)                    │    │
+│  │   run_mcp_stdio_server() - MCP Mode          │    │
+│  │                                              │    │
+│  │  1. Start Uvicorn in daemon thread           │    │
+│  │     (non-blocking, background HTTP server)   │    │
+│  │                                              │    │
+│  │  2. Main thread handles stdin/stdout         │    │
+│  │     - Read JSON-RPC from stdin               │    │
+│  │     - Call internal HTTP endpoints           │    │
+│  │     - Write JSON-RPC to stdout               │    │
+│  │                                              │    │
+│  │  MCP Tools:                                  │    │
+│  │  - get_weather (lat, lon)                    │    │
+│  │  - get_forecast (lat, lon)                   │    │
 │  └──────────────────────────────────────────────┘    │
-└────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────┘
 ```
 
 ## Message Flow: MCP Mode
@@ -112,7 +112,7 @@ The Weather MCP Server now supports two modes of operation:
 ```
 MCP CLI                    Weather Server
    │                            │
-   │──── initialize ────────────>│
+   │──── initialize ───────────>│
    │                            │
    │<─── capabilities ──────────│
    │     (tools: get_weather,   │
@@ -124,16 +124,16 @@ MCP CLI                    Weather Server
 ```
 MCP CLI                    Weather Server                  HTTP Backend
    │                            │                                │
-   │─── tools/call ─────────────>│                                │
-   │    (get_weather,            │                                │
-   │     lat=33.44, lon=-94.04)  │                                │
+   │─── tools/call ────────────>│                                │
+   │    (get_weather,           │                                │
+   │     lat=33.44, lon=-94.04) │                                │
    │                            │                                │
-   │                            │─── GET /weather?lat=33.44&... ─>│
+   │                            │── GET /weather?lat=33.44&... ─>│
    │                            │                                │
    │                            │<─── HTTP 200 + weather data ───│
    │                            │                                │
    │<─── result ────────────────│                                │
-   │     (formatted weather)     │                                │
+   │     (formatted weather)    │                                │
 ```
 
 ## Usage Examples

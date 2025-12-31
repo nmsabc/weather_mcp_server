@@ -43,7 +43,9 @@ https://api.openweathermap.org/data/3.0/onecall?lat=33.44&lon=-94.04&appid={API 
 
 ## filled with end points data
 
-https://api.openweathermap.org/data/3.0/onecall?lat=45.7538355&lon=21.2257474&appid={742fce977260f6de93ef78782d4bdbf0}
+https://api.openweathermap.org/data/3.0/onecall?lat=45.7538355&lon=21.2257474&appid={xxxyyyzzz}
+ 
+the old key was exposed - I just removed it - 31 Dec 2025 - 
 
 ## Example of API response
 
