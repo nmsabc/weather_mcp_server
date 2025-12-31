@@ -11,7 +11,7 @@ import threading
 import time
 import requests
 from fastapi import FastAPI, HTTPException, Query
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import uvicorn
 
 from weather_api import OpenWeatherMapAPI, WeatherAPIError
@@ -122,7 +122,7 @@ async def get_forecast(
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
-def run_server(host: str = None, port: int = None):
+def run_server(host: Optional[str] = None, port: Optional[int] = None):
     """
     Run the MCP server in HTTP mode (blocking).
     
@@ -137,7 +137,7 @@ def run_server(host: str = None, port: int = None):
     uvicorn.run(app, host=host, port=port)
 
 
-def run_mcp_stdio_server(host: str = None, port: int = None):
+def run_mcp_stdio_server(host: Optional[str] = None, port: Optional[int] = None):
     """
     Run the MCP server in stdio mode (non-blocking).
     Starts HTTP server in background thread and handles MCP JSON-RPC messages via stdin/stdout.
@@ -148,6 +148,7 @@ def run_mcp_stdio_server(host: str = None, port: int = None):
     """
     host = host or os.environ.get("MCP_SERVER_HOST", "127.0.0.1")
     port = port or int(os.environ.get("MCP_SERVER_PORT", "8000"))
+    startup_wait = float(os.environ.get("MCP_SERVER_STARTUP_WAIT", "2.0"))
     
     # Start HTTP server in background thread
     def run_uvicorn_background():
@@ -157,8 +158,8 @@ def run_mcp_stdio_server(host: str = None, port: int = None):
     server_thread = threading.Thread(target=run_uvicorn_background, daemon=True)
     server_thread.start()
     
-    # Give server time to start
-    time.sleep(2)
+    # Give server time to start (configurable via environment variable)
+    time.sleep(startup_wait)
     logger.info(f"Weather MCP Server HTTP backend started on {host}:{port}")
     logger.info("MCP stdio interface ready - reading from stdin")
     
@@ -218,7 +219,7 @@ def run_mcp_stdio_server(host: str = None, port: int = None):
     logger.info("MCP server stopped")
 
 
-def handle_mcp_message(message: Dict[str, Any], base_url: str) -> Dict[str, Any]:
+def handle_mcp_message(message: Dict[str, Any], base_url: str) -> Optional[Dict[str, Any]]:
     """
     Handle an MCP JSON-RPC message.
     
@@ -227,7 +228,7 @@ def handle_mcp_message(message: Dict[str, Any], base_url: str) -> Dict[str, Any]
         base_url: Base URL for HTTP backend
         
     Returns:
-        JSON-RPC response
+        JSON-RPC response or None for notifications
     """
     jsonrpc = message.get("jsonrpc")
     msg_id = message.get("id")
@@ -308,95 +309,7 @@ def handle_mcp_message(message: Dict[str, Any], base_url: str) -> Dict[str, Any]
     
     # Handle tools/call
     if method == "tools/call":
-        tool_name = params.get("name")
-        tool_args = params.get("arguments", {})
-        
-        try:
-            if tool_name == "get_weather":
-                lat = tool_args.get("latitude")
-                lon = tool_args.get("longitude")
-                
-                if lat is None or lon is None:
-                    raise ValueError("latitude and longitude are required")
-                
-                # Call HTTP endpoint
-                response = requests.get(
-                    f"{base_url}/weather",
-                    params={"lat": lat, "lon": lon},
-                    timeout=30
-                )
-                response.raise_for_status()
-                data = response.json()
-                
-                return {
-                    "jsonrpc": "2.0",
-                    "id": msg_id,
-                    "result": {
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": json.dumps(data, indent=2)
-                            }
-                        ]
-                    }
-                }
-                
-            elif tool_name == "get_forecast":
-                lat = tool_args.get("latitude")
-                lon = tool_args.get("longitude")
-                
-                if lat is None or lon is None:
-                    raise ValueError("latitude and longitude are required")
-                
-                # Call HTTP endpoint
-                response = requests.get(
-                    f"{base_url}/forecast",
-                    params={"lat": lat, "lon": lon},
-                    timeout=30
-                )
-                response.raise_for_status()
-                data = response.json()
-                
-                return {
-                    "jsonrpc": "2.0",
-                    "id": msg_id,
-                    "result": {
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": json.dumps(data, indent=2)
-                            }
-                        ]
-                    }
-                }
-            else:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": msg_id,
-                    "error": {
-                        "code": -32601,
-                        "message": f"Unknown tool: {tool_name}"
-                    }
-                }
-                
-        except requests.RequestException as e:
-            return {
-                "jsonrpc": "2.0",
-                "id": msg_id,
-                "error": {
-                    "code": -32603,
-                    "message": f"HTTP request failed: {str(e)}"
-                }
-            }
-        except Exception as e:
-            return {
-                "jsonrpc": "2.0",
-                "id": msg_id,
-                "error": {
-                    "code": -32603,
-                    "message": f"Tool execution failed: {str(e)}"
-                }
-            }
+        return handle_tool_call(msg_id, params, base_url)
     
     # Handle notifications (no response needed)
     if msg_id is None:
@@ -411,6 +324,105 @@ def handle_mcp_message(message: Dict[str, Any], base_url: str) -> Dict[str, Any]
             "message": f"Method not found: {method}"
         }
     }
+
+
+def call_http_endpoint(base_url: str, endpoint: str, lat: float, lon: float) -> Dict[str, Any]:
+    """
+    Call an HTTP endpoint and return the response data.
+    
+    Args:
+        base_url: Base URL for HTTP backend
+        endpoint: Endpoint path (e.g., "/weather" or "/forecast")
+        lat: Latitude
+        lon: Longitude
+        
+    Returns:
+        Response data from endpoint
+        
+    Raises:
+        requests.RequestException: If HTTP request fails
+    """
+    response = requests.get(
+        f"{base_url}{endpoint}",
+        params={"lat": lat, "lon": lon},
+        timeout=30
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def handle_tool_call(msg_id: Optional[int], params: Dict[str, Any], base_url: str) -> Dict[str, Any]:
+    """
+    Handle a tools/call JSON-RPC method.
+    
+    Args:
+        msg_id: Message ID
+        params: Tool call parameters
+        base_url: Base URL for HTTP backend
+        
+    Returns:
+        JSON-RPC response
+    """
+    tool_name = params.get("name")
+    tool_args = params.get("arguments", {})
+    
+    try:
+        lat = tool_args.get("latitude")
+        lon = tool_args.get("longitude")
+        
+        if lat is None or lon is None:
+            raise ValueError("latitude and longitude are required")
+        
+        # Route to appropriate endpoint
+        if tool_name == "get_weather":
+            data = call_http_endpoint(base_url, "/weather", lat, lon)
+        elif tool_name == "get_forecast":
+            data = call_http_endpoint(base_url, "/forecast", lat, lon)
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Unknown tool: {tool_name}"
+                }
+            }
+        
+        return {
+            "jsonrpc": "2.0",
+            "id": msg_id,
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps(data, indent=2)
+                    }
+                ]
+            }
+        }
+        
+    except requests.RequestException as e:
+        error_msg = f"HTTP request failed: {type(e).__name__}"
+        logger.error(f"{error_msg} - {str(e)}")
+        return {
+            "jsonrpc": "2.0",
+            "id": msg_id,
+            "error": {
+                "code": -32603,
+                "message": error_msg
+            }
+        }
+    except Exception as e:
+        error_msg = f"Tool execution failed: {type(e).__name__}"
+        logger.error(f"{error_msg} - {str(e)}")
+        return {
+            "jsonrpc": "2.0",
+            "id": msg_id,
+            "error": {
+                "code": -32603,
+                "message": error_msg
+            }
+        }
 
 
 if __name__ == "__main__":
