@@ -117,7 +117,7 @@ async def get_forecast(
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
-def run_server(host: str = None, port: int = None):
+def run_server(host: str | None = None, port: int | None= None):
     """
     Run the MCP server.
     
