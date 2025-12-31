@@ -114,6 +114,43 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": []
             }
+        ),
+        Tool(
+            name="get_forecast",
+            description="Get weather forecast (hourly 48h + daily 8d) for a specific location. You can use either coordinates (latitude/longitude) OR a location name/address. Perfect for asking 'What will the weather be tomorrow?' or 'How will the weather be next week?'",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "latitude": {
+                        "type": "number",
+                        "description": "Latitude coordinate (-90 to 90). Optional if location is provided.",
+                        "minimum": -90,
+                        "maximum": 90
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "description": "Longitude coordinate (-180 to 180). Optional if location is provided.",
+                        "minimum": -180,
+                        "maximum": 180
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Location name, city, or address (e.g., 'Baden bei Wien, Austria', 'New York, NY', 'London, UK'). Use this if you don't have exact coordinates."
+                    },
+                    "units": {
+                        "type": "string",
+                        "description": "Unit system for temperature and other measurements",
+                        "enum": ["metric", "imperial", "standard"],
+                        "default": "metric"
+                    },
+                    "lang": {
+                        "type": "string",
+                        "description": "Language code for weather descriptions",
+                        "default": "en"
+                    }
+                },
+                "required": []
+            }
         )
     ]
 
@@ -126,8 +163,8 @@ async def list_resources() -> list:
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> Sequence[TextContent]:
-    """Handle tool calls."""
-    if name != "get_current_weather":
+    """Handle tool calls for weather and forecast."""
+    if name not in ["get_current_weather", "get_forecast"]:
         raise ValueError(f"Unknown tool: {name}")
 
     try:
@@ -157,29 +194,31 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> Sequence[TextConten
             raise ValueError("longitude must be between -180 and 180")
 
         logger.info(
-            f"Getting weather for coordinates: {latitude}, {longitude}")
+            f"Getting {name} for coordinates: {latitude}, {longitude}")
 
-        # Get weather data
-        raw_data = weather_service.get_current_weather(
-            latitude=latitude,
-            longitude=longitude,
-            units=units,
-            lang=lang
-        )
+        # Handle current weather
+        if name == "get_current_weather":
+            # Get weather data
+            raw_data = weather_service.get_current_weather(
+                latitude=latitude,
+                longitude=longitude,
+                units=units,
+                lang=lang
+            )
 
-        # Format the response
-        formatted_data = weather_service.format_weather_response(raw_data)
+            # Format the response
+            formatted_data = weather_service.format_weather_response(raw_data)
 
-        # Create a natural language response
-        location = formatted_data.get("location", {})
-        current = formatted_data.get("current", {})
-        weather = current.get("weather", {})
+            # Create a natural language response
+            location_data = formatted_data.get("location", {})
+            current = formatted_data.get("current", {})
+            weather = current.get("weather", {})
 
-        # Get coordinates with defaults
-        lat = location.get('latitude', latitude)
-        lon = location.get('longitude', longitude)
+            # Get coordinates with defaults
+            lat = location_data.get('latitude', latitude)
+            lon = location_data.get('longitude', longitude)
 
-        response_text = f"""Current weather for coordinates ({lat}, {lon}):
+            response_text = f"""Current weather for coordinates ({lat}, {lon}):
 
 🌡️  Temperature: {current.get('temperature', 'N/A')}°
 🌡️  Feels like: {current.get('feels_like', 'N/A')}°
@@ -193,7 +232,70 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> Sequence[TextConten
 🌅 Sunrise: {current.get('sunrise', 'N/A')}
 🌇 Sunset: {current.get('sunset', 'N/A')}"""
 
-        return [TextContent(type="text", text=response_text)]
+            return [TextContent(type="text", text=response_text)]
+
+        # Handle forecast
+        elif name == "get_forecast":
+            # Get forecast data
+            raw_forecast = weather_service.get_forecast(
+                latitude=latitude,
+                longitude=longitude,
+                units=units,
+                lang=lang
+            )
+
+            # Format the response
+            formatted_forecast = weather_service.format_forecast_data(raw_forecast)
+
+            # Create a natural language response with forecast data
+            location_data = formatted_forecast.get("location", {})
+            current = formatted_forecast.get("current", {})
+            daily = formatted_forecast.get("daily", [])
+            
+            lat = location_data.get('latitude', latitude)
+            lon = location_data.get('longitude', longitude)
+
+            response_text = f"""Weather Forecast for coordinates ({lat}, {lon}):
+
+📍 Current Conditions:
+🌡️  Temperature: {current.get('temperature', 'N/A')}°
+🌡️  Feels like: {current.get('feels_like', 'N/A')}°
+🌤️  Conditions: {current.get('weather', {}).get('description', 'N/A').title()}
+💧 Humidity: {current.get('humidity', 'N/A')}%
+🌪️  Wind speed: {current.get('wind_speed', 'N/A')} m/s
+
+📅 Daily Forecast (next 8 days):
+"""
+            
+            for i, day in enumerate(daily[:8], 1):
+                date = day.get('dt', 'N/A')
+                temp_data = day.get('temp', {})
+                temp_max = temp_data.get('max', 'N/A') if isinstance(temp_data, dict) else 'N/A'
+                temp_min = temp_data.get('min', 'N/A') if isinstance(temp_data, dict) else 'N/A'
+                
+                # Safely get weather description
+                weather_data = day.get('weather', {})
+                if isinstance(weather_data, dict):
+                    weather_desc = weather_data.get('description', 'N/A').title()
+                else:
+                    weather_desc = 'N/A'
+                
+                rain = day.get('rain', 0)
+                wind = day.get('wind_speed', 'N/A')
+                
+                response_text += f"""
+Day {i} ({date}):
+  🌡️  High: {temp_max}° / Low: {temp_min}°
+  🌤️  Conditions: {weather_desc}
+  💧 Rain: {rain} mm
+  🌪️  Wind: {wind} m/s"""
+
+            return [TextContent(type="text", text=response_text)]
+
+        else:
+            # This should not happen, but ensure all code paths return
+            error_msg = f"Unknown tool: {name}"
+            return [TextContent(type="text", text=error_msg)]
 
     except Exception as e:
         logger.error(f"Error getting weather data: {e}")
